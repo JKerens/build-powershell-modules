@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Build.PowerShell</AssemblyName>
+    <OutDir>artifacts</OutDir>
+  </PropertyGroup>
+ 
+  <ItemGroup>
+    <!-- Copies the psd1 file and flattens the directory with TargetPath-->
+    <None Include="$(ProjectDir)\src\**\*.psd1" TargetPath="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest"/>
+
+    <!-- Finds all ps1 files for merging -->
+    <MyPowerShellFiles Include="src\**\*.ps1"/>
+  </ItemGroup>
+
+  <Target Name="CombineFiles" AfterTargets="CopyFilesToOutputDirectory">
+    <!-- loops through all the ps1 files and reads them in the ItemsFromFile variable -->
+    <ReadLinesFromFile File="%(MyPowerShellFiles.Identity)">
+      <Output TaskParameter="Lines" ItemName="ItemsFromFile"/>
+    </ReadLinesFromFile>
+
+    <!-- Resets the psm1 file and injects the needed using statement to consume our sdk project -->
+    <WriteLinesToFile File="$(OutDir)\$(AssemblyName).psm1" Lines="using module '.\$(AssemblyName).dll'" Overwrite="true" Encoding="Unicode"/>
+
+    <!-- writes all of the functions into a single psm1 file -->
+    <WriteLinesToFile File="$(OutDir)\$(AssemblyName).psm1" Lines="@(ItemsFromFile)" Overwrite="false" Encoding="Unicode"/>
+  </Target>
+</Project>
